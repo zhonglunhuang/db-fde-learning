@@ -25,7 +25,7 @@ repo 根目錄就是網站本身，不需要 build。
 
 ```text
 index.html          頁面骨架與三個對話框（AI 提問、ERD 放大、清除確認）
-css/styles.css      樣式（品牌色 #263744 / #E59A52 / #FAF8F3、響應式、列印）
+css/styles.css      樣式（Apple 現代風格：淺灰底、白色圓角卡片、膠囊按鈕；響應式、列印）
 js/data.js          三組背景、ERD（資料表／關聯／狀態值／畫布位置）與 12 題內容  ← 改題目只改這裡
 js/erd.js           ERD 文字版（AI Prompt 與純文字檢視用）
 js/board.js         ERD 畫布：平移、縮放、拖曳資料表、全螢幕

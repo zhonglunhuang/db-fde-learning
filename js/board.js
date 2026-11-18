@@ -8,7 +8,7 @@
   var PAD_BOTTOM = 6;
   var MIN_SCALE = 0.15;
   var MAX_SCALE = 2.5;
-  var COLORS = ['#FFE08A', '#FFC2BD', '#BDE3FF', '#C9F0C4', '#DCC8FF', '#FFD3A8', '#BDEDEA', '#F9CDE6'];
+  var COLORS = ['#FFE9A8', '#FFD0CC', '#CFE6FF', '#D4F2D0', '#E3D6FF', '#FFDFC2', '#CDF0EE', '#FAD9EC'];
   var SVGNS = 'http://www.w3.org/2000/svg';
 
   /* 拖曳後的位置（同一題組的內嵌畫布與全螢幕畫布共用，重新整理後還原）。 */
