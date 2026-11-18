@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海豹學院｜FDE 商業情境實戰</title>
+  <meta name="description" content="讀懂 ERD、拆解客戶需求、用自然語言提出解法。三大題組、12 個商業情境的資料庫思維實戰練習。">
+  <meta name="theme-color" content="#263744">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23263744'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='%23E59A52' font-family='sans-serif' font-weight='700'%3EF%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#app">跳到主要內容</a>
+
+  <header class="site-header no-print">
+    <div class="wrap header-inner">
+      <a class="brand" href="#/">海豹學院<span class="brand-sub">FDE 商業情境實戰</span></a>
+      <nav aria-label="題組">
+        <a href="#/group/A" data-nav="A">題組 A</a>
+        <a href="#/group/B" data-nav="B">題組 B</a>
+        <a href="#/group/C" data-nav="C">題組 C</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" class="wrap" tabindex="-1">
+    <noscript>
+      <p class="notice">本網站需要啟用 JavaScript 才能作答與儲存進度。</p>
+    </noscript>
+  </main>
+
+  <footer class="site-footer no-print">
+    <div class="wrap">
+      <p id="save-status" role="status" aria-live="polite">作答會自動儲存於這個瀏覽器。</p>
+      <p>資料只儲存於目前瀏覽器，換裝置或清除瀏覽資料後不會同步；請定期匯出作答。本網站不會上傳你的回答，也不會自動把內容送給任何 AI。</p>
+    </div>
+  </footer>
+
+  <!-- AI 提問／手動複製 對話框 -->
+  <dialog id="prompt-dialog" class="modal" aria-labelledby="prompt-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="prompt-title">帶去問 AI</h2>
+        <button type="button" class="btn btn-ghost" data-close>關閉</button>
+      </div>
+      <div class="modal-body">
+        <p id="prompt-unanswered" class="notice notice-warn" hidden>目前尚未填寫答案。這份提問會請 AI 以提問與提示引導你，而不是直接給完整答案。</p>
+        <ol id="prompt-steps" class="steps">
+          <li>檢查下方內容，確認沒有不想提供的個人資料。</li>
+          <li>按「複製完整提問」。</li>
+          <li>開啟 AI 服務，自行貼上並送出。</li>
+        </ol>
+        <label for="prompt-text" id="prompt-label">即將複製的完整提問</label>
+        <textarea id="prompt-text" readonly rows="14" spellcheck="false"></textarea>
+        <p id="prompt-copy-msg" class="copy-msg" role="status" aria-live="polite"></p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="prompt-copy">複製完整提問</button>
+          <span id="prompt-links" class="btn-row">
+            <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">開啟 ChatGPT<span class="sr-only">（新分頁）</span> ↗</a>
+            <a class="btn" href="https://claude.ai/" target="_blank" rel="noopener noreferrer">開啟 Claude<span class="sr-only">（新分頁）</span> ↗</a>
+            <a class="btn" href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">開啟 Gemini<span class="sr-only">（新分頁）</span> ↗</a>
+          </span>
+        </div>
+        <p id="prompt-disclaimer" class="hint">本網站不會替你送出任何內容：AI 平台會在新分頁開啟，你需要自己貼上並送出後，AI 才會看到。回答可能包含個資，送出前請檢查並去識別化。</p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ERD 放大檢視 -->
+  <dialog id="erd-dialog" class="modal modal-full" aria-labelledby="erd-dialog-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="erd-dialog-title">ERD</h2>
+        <div class="btn-row">
+          <button type="button" class="btn" id="erd-zoom-out" aria-label="縮小 ERD">縮小 −</button>
+          <button type="button" class="btn" id="erd-zoom-reset" aria-label="重設 ERD 縮放">100%</button>
+          <button type="button" class="btn" id="erd-zoom-in" aria-label="放大 ERD">放大 ＋</button>
+          <button type="button" class="btn btn-ghost" data-close>關閉</button>
+        </div>
+      </div>
+      <div class="modal-body erd-dialog-body">
+        <div id="erd-dialog-canvas" class="erd-canvas"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 清除資料確認 -->
+  <dialog id="confirm-dialog" class="modal modal-small" aria-labelledby="confirm-title">
+    <div class="modal-inner">
+      <div class="modal-head">
+        <h2 id="confirm-title">確定要清除本機資料嗎？</h2>
+      </div>
+      <div class="modal-body">
+        <p>這會刪除這個瀏覽器裡的姓名、全部 12 個情境的回答與完成狀態。<strong>清除後無法復原。</strong></p>
+        <p class="hint">建議先匯出作答再清除。只會清除本網站的資料，不影響其他網站。</p>
+        <div class="btn-row">
+          <button type="button" class="btn" data-close>取消</button>
+          <button type="button" class="btn btn-danger" id="confirm-clear">確定清除</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/erd.js"></script>
+  <script src="js/prompt.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
