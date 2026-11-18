@@ -191,9 +191,11 @@
       if (!w || !h) return;
       var b = bounds(group, pos);
       var margin = 36;
-      scale = Math.max(MIN_SCALE, Math.min(1.1, (w - margin * 2) / b.w, (h - margin * 2 - 40) / b.h));
-      tx = (w - b.w * scale) / 2 - b.x * scale;
-      ty = (h - 40 - b.h * scale) / 2 - b.y * scale;
+      if (w < 520) margin = 16;
+      // 窄螢幕不硬塞整張圖：維持可讀的大小，從左上角開始，其餘用拖曳查看
+      scale = Math.max(opts.fullscreen ? 0.45 : 0.55, Math.min(1.1, (w - margin * 2) / b.w, (h - margin * 2 - 40) / b.h));
+      tx = Math.max(margin, (w - b.w * scale) / 2) - b.x * scale;
+      ty = Math.max(margin, (h - 40 - b.h * scale) / 2) - b.y * scale;
       apply();
     }
 
@@ -226,10 +228,11 @@
     pct.className = 'board-pct';
     tool('＋', '放大', function () { zoomCenter(1.25); });
     tool('適合畫面', '縮放至適合畫面', function () { userMoved = false; fit(); });
-    tool('重設排列', '資料表回到預設位置', function () {
+    var resetBtn = tool('重設排列', '資料表回到預設位置', function () {
       pos = resetPositions(group);
       placeCards(); drawEdges(); userMoved = false; fit();
     });
+    resetBtn.className = 'b-opt';
     if (opts.onFullscreen) tool('全螢幕', '全螢幕查看 ERD', opts.onFullscreen);
     container.appendChild(bar);
 

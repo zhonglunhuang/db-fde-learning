@@ -465,7 +465,7 @@
       },
     }, '複製本題回答');
 
-    var erdDetails = h('details', { class: 'card erd-details' },
+    var erdDetails = h('details', { class: 'erd-details' },
       h('summary', null, 'ERD 與資料結構',
         h('span', { class: 'summary-desc' }, '本題重點：' + scenario.focusTables.join('、')))
     );
@@ -490,9 +490,9 @@
           h('blockquote', null, '「' + scenario.clientQuote + '」')
         )
       ),
-      h('div', { class: 'btn-row no-print' },
-        h('button', { type: 'button', class: 'btn', onclick: function () { openErdDialog(group, scenario.focusTables); } }, '全螢幕查看 ERD')),
-      erdDetails,
+      h('div', { class: 'card erd-card' },
+        erdDetails,
+        h('button', { type: 'button', class: 'btn btn-sm no-print', 'aria-label': '全螢幕查看 ERD', onclick: function () { openErdDialog(group, scenario.focusTables); } }, '全螢幕')),
       TASKS.map(function (t) {
         return answerField(t.field, t.label, scenario.tasks[t.field], 8);
       }),
