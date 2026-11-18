@@ -26,19 +26,19 @@ repo 根目錄就是網站本身，不需要 build。
 ```text
 index.html          頁面骨架與三個對話框（AI 提問、ERD 放大、清除確認）
 css/styles.css      樣式（品牌色 #263744 / #E59A52 / #FAF8F3、響應式、列印）
-js/data.js          三組背景、ERD（資料表／關聯／狀態值）與 12 題內容  ← 改題目只改這裡
-js/erd.js           由資料產生 Mermaid 圖與 ERD 文字版
+js/data.js          三組背景、ERD（資料表／關聯／狀態值／畫布位置）與 12 題內容  ← 改題目只改這裡
+js/erd.js           ERD 文字版（AI Prompt 與純文字檢視用）
+js/board.js         ERD 畫布：平移、縮放、拖曳資料表、全螢幕
 js/prompt.js        題組級／情境級 AI Prompt 組裝
 js/storage.js       localStorage 讀寫、損壞處理
 js/export.js        匯出 Markdown／JSON
 js/app.js           路由、畫面、自動儲存
-vendor/mermaid.min.js   Mermaid 12.3.0（MIT），隨站部署，不依賴外部 CDN
 tests/run.js        邏輯測試（不需安裝套件）
 ```
 
 ## 修改題目或 ERD
 
-只需要編輯 `js/data.js`。畫面、ERD 圖、ERD 文字版、AI Prompt 與匯出內容都由這份資料產生，不必改其他檔案。改完後執行測試確認資料完整：
+只需要編輯 `js/data.js`（新增資料表時記得在 `layout` 補上畫布位置）。畫面、ERD 畫布、ERD 文字版、AI Prompt 與匯出內容都由這份資料產生，不必改其他檔案。改完後執行測試確認資料完整：
 
 ```bash
 node tests/run.js
@@ -74,6 +74,6 @@ node tests/run.js
 - [x] AI 連結以新分頁開啟，文案說明需自行貼上送出。
 - [x] 重新整理頁面後答案與完成狀態保留。
 - [x] 匯出 Markdown 的中文、換行與完整題目編號正確。
-- [x] 窄版畫面無橫向溢出，ERD 可橫向捲動與放大，AI 對話框可用（Chrome 視窗最窄只能縮到約 600px，未在實體手機上測試）。
+- [x] 窄版畫面無橫向溢出，ERD 畫布可拖曳、縮放與全螢幕，AI 對話框可用（Chrome 視窗最窄只能縮到約 600px，未在實體手機上測試）。
 - [x] 清除本機資料需確認，且不會清除其他 key。
 - [x] 不包含 API Secret、資料上傳或追蹤程式。

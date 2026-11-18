@@ -2,8 +2,8 @@
 const assert = require('node:assert/strict');
 
 globalThis.window = globalThis;
-['data', 'storage', 'erd', 'prompt', 'export'].forEach((f) => require('../js/' + f + '.js'));
-const { groups, storage: S, erd, prompt, exporter } = globalThis.FDE;
+['data', 'storage', 'erd', 'board', 'prompt', 'export'].forEach((f) => require('../js/' + f + '.js'));
+const { groups, storage: S, erd, board, prompt, exporter } = globalThis.FDE;
 
 let passed = 0;
 function test(name, fn) {
@@ -62,15 +62,19 @@ test('題目文字不要求 SQL', () => {
 });
 
 console.log('ERD');
-test('Mermaid 原始碼包含全部資料表、關聯與 PK/FK', () => {
+test('畫布：每張資料表都有預設位置、互不重疊，每條關聯都算得出連線', () => {
   groups.forEach((g) => {
-    const code = erd.toMermaid(g);
-    assert.ok(code.startsWith('erDiagram'));
-    g.tables.forEach((t) => assert.ok(code.includes('  ' + t.name + ' {')));
-    assert.equal(code.split('\n').filter((l) => l.includes('--o{')).length, g.relations.length);
+    assert.deepEqual(Object.keys(g.layout).sort(), g.tables.map((t) => t.name).sort());
+    const rects = g.tables.map((t) => ({ n: t.name, x: g.layout[t.name][0], y: g.layout[t.name][1], w: board.CARD_WIDTH, h: board.cardHeight(t) }));
+    rects.forEach((a, i) => rects.slice(i + 1).forEach((b) => {
+      const apart = a.x + a.w + 20 <= b.x || b.x + b.w + 20 <= a.x || a.y + a.h + 20 <= b.y || b.y + b.h + 20 <= a.y;
+      assert.ok(apart, a.n + ' 與 ' + b.n + ' 重疊');
+    }));
+    g.relations.forEach((r) => {
+      const geo = board.edgeGeometry(g, r, g.layout);
+      assert.ok(/^M[-\d. ]+C[-\d. ]+$/.test(geo.d), r.one + '→' + r.many);
+    });
   });
-  assert.ok(erd.toMermaid(groups[1]).includes('orders o|--o{ inventory_movements : references'));
-  assert.ok(erd.toMermaid(groups[0]).includes('BIGINT enrollment_id FK'));
 });
 test('文字版包含資料表、關聯、狀態值與補充', () => {
   const text = erd.toText(groups[2]);

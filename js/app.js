@@ -102,10 +102,10 @@
     dirty = false;
     if (S.save(getStorage(), data)) {
       var d = new Date();
-      saveStatus.textContent = '已自動儲存於這個瀏覽器（' + FDE.exporter.formatDateTime(d).slice(11) + '）';
+      saveStatus.textContent = '已儲存 ' + FDE.exporter.formatDateTime(d).slice(11);
       saveStatus.classList.remove('error');
     } else {
-      saveStatus.textContent = '無法儲存到瀏覽器（可能是無痕模式或儲存空間已滿）。請盡快用「匯出作答」保存內容。';
+      saveStatus.textContent = '無法儲存到瀏覽器，請盡快匯出作答。';
       saveStatus.classList.add('error');
     }
   }
@@ -155,10 +155,9 @@
     var ai = opts.mode === 'ai';
     document.getElementById('prompt-title').textContent = title;
     document.getElementById('prompt-unanswered').hidden = !opts.unanswered;
-    document.getElementById('prompt-steps').hidden = !ai;
     document.getElementById('prompt-links').hidden = !ai;
     document.getElementById('prompt-disclaimer').hidden = !ai;
-    document.getElementById('prompt-label').textContent = ai ? '即將複製的完整提問' : '要複製的內容';
+    document.getElementById('prompt-label').textContent = ai ? '完整提問' : '要複製的內容';
     promptCopyBtn.textContent = ai ? '複製完整提問' : '複製';
     promptText.value = text;
     promptCopyMsg.textContent = '';
@@ -167,7 +166,7 @@
     promptText.scrollTop = 0;
     if (!ai) {
       selectPromptText();
-      promptCopyMsg.textContent = '無法自動複製。內容已全選，請按 Ctrl+C（Mac 為 ⌘+C）手動複製。';
+      promptCopyMsg.textContent = '無法自動複製，內容已全選，請按 Ctrl／⌘+C。';
       promptCopyMsg.classList.add('error');
     }
   }
@@ -176,49 +175,30 @@
     copyText(promptText.value).then(function (ok) {
       if (ok) {
         promptCopyMsg.classList.remove('error');
-        promptCopyMsg.textContent = '已複製到剪貼簿。請開啟 AI 服務後自行貼上並送出。';
+        promptCopyMsg.textContent = '已複製，請到 AI 平台貼上送出。';
       } else {
         selectPromptText();
         promptCopyMsg.classList.add('error');
-        promptCopyMsg.textContent = '無法自動複製。內容已全選，請按 Ctrl+C（Mac 為 ⌘+C）手動複製。';
+        promptCopyMsg.textContent = '無法自動複製，內容已全選，請按 Ctrl／⌘+C。';
       }
     });
   });
 
   var erdDialog = document.getElementById('erd-dialog');
   var erdCanvas = document.getElementById('erd-dialog-canvas');
-  var erdZoom = 1;
+  var inlineBoard = null;
+  var dialogBoard = null;
   setupDialog(erdDialog);
-
-  function applyZoom() {
-    erdCanvas.style.width = Math.round(erdZoom * 1100) + 'px';
-    document.getElementById('erd-zoom-reset').textContent = Math.round(erdZoom * 100) + '%';
-  }
-  document.getElementById('erd-zoom-in').addEventListener('click', function () {
-    erdZoom = Math.min(3, erdZoom + 0.25);
-    applyZoom();
-  });
-  document.getElementById('erd-zoom-out').addEventListener('click', function () {
-    erdZoom = Math.max(0.5, erdZoom - 0.25);
-    applyZoom();
-  });
-  document.getElementById('erd-zoom-reset').addEventListener('click', function () {
-    erdZoom = 1;
-    applyZoom();
+  erdDialog.addEventListener('close', function () {
+    if (dialogBoard) dialogBoard.destroy();
+    dialogBoard = null;
+    if (inlineBoard) inlineBoard.refresh();
   });
 
-  function openErdDialog(group) {
+  function openErdDialog(group, focus) {
     document.getElementById('erd-dialog-title').textContent = '題組 ' + group.id + ' ERD';
-    erdZoom = 1;
-    applyZoom();
-    erdCanvas.textContent = 'ERD 載入中…';
     erdDialog.showModal();
-    FDE.erd.renderInto(erdCanvas, group).catch(function () {
-      erdCanvas.style.width = 'auto';
-      erdCanvas.textContent = '';
-      erdCanvas.appendChild(h('p', { class: 'notice notice-warn' }, 'ERD 圖無法載入，以下為文字版資料結構。'));
-      erdCanvas.appendChild(h('pre', { class: 'erd-text' }, FDE.erd.toText(group)));
-    });
+    dialogBoard = FDE.board.mount(erdCanvas, group, { fullscreen: true, focus: focus });
   }
 
   var confirmDialog = document.getElementById('confirm-dialog');
@@ -238,7 +218,7 @@
   /* ---------- 共用畫面元件 ---------- */
 
   function privacyHint() {
-    return h('p', { class: 'hint' }, '提醒：回答可能包含個資，送給 AI 前請先檢查並去識別化。網站不會自動送出內容，需由你在 AI 平台貼上後送出。');
+    return h('p', { class: 'hint' }, '送給 AI 前請先檢查並移除個資。');
   }
 
   function statusBadge(rec) {
@@ -247,35 +227,22 @@
     return h('span', { class: 'badge' }, '未作答');
   }
 
-  /** ERD 區塊：圖（可橫向捲動、不裁切）、放大檢視、文字版資料結構。 */
-  function erdSection(group, headingTag) {
-    var canvas = h('div', { class: 'erd-canvas erd-inline' }, 'ERD 載入中…');
+  /** ERD 區塊：可平移縮放的畫布，加上文字版資料結構。 */
+  function erdSection(group, headingTag, focus) {
+    var holder = h('div');
     var textPre = h('pre', { class: 'erd-text', id: 'erd-text-' + group.id, hidden: true, tabindex: '0' }, FDE.erd.toText(group));
-    var toggle = h('button', { type: 'button', class: 'btn', 'aria-expanded': 'false', 'aria-controls': 'erd-text-' + group.id }, '顯示文字版資料結構');
+    var toggle = h('button', { type: 'button', class: 'btn', 'aria-expanded': 'false', 'aria-controls': 'erd-text-' + group.id }, '顯示文字版');
     toggle.addEventListener('click', function () {
       textPre.hidden = !textPre.hidden;
       toggle.setAttribute('aria-expanded', String(!textPre.hidden));
-      toggle.textContent = textPre.hidden ? '顯示文字版資料結構' : '隱藏文字版資料結構';
+      toggle.textContent = textPre.hidden ? '顯示文字版' : '隱藏文字版';
     });
-    var zoomBtn = h('button', { type: 'button', class: 'btn', onclick: function () { openErdDialog(group); } }, '放大／全螢幕查看 ERD');
-    var failNote = h('p', { class: 'notice notice-warn', hidden: true }, 'ERD 圖無法載入，已改為顯示文字版資料結構。');
-
-    FDE.erd.renderInto(canvas, group).catch(function () {
-      canvas.hidden = true;
-      scroller.hidden = true;
-      zoomBtn.hidden = true;
-      failNote.hidden = false;
-      textPre.hidden = false;
-      toggle.hidden = true;
-    });
-
-    var scroller = h('div', { class: 'erd-scroll', tabindex: '0', role: 'group', 'aria-label': 'ERD 圖，可左右捲動' }, canvas);
+    inlineBoard = FDE.board.mount(holder, group, { focus: focus, onFullscreen: function () { openErdDialog(group, focus); } });
     return h('section', { class: 'card' },
-      h(headingTag, null, 'ERD 實體關聯圖'),
-      h('p', { class: 'hint' }, '圖太小時可以左右捲動，或按「放大／全螢幕查看 ERD」。PK 為主鍵、FK 為外鍵、UK 為不可重複。'),
-      failNote,
-      scroller,
-      h('div', { class: 'btn-row no-print' }, zoomBtn, toggle),
+      h(headingTag, null, 'ERD'),
+      holder,
+      h('p', { class: 'hint no-print' }, '拖曳移動畫布或資料表，⌘／Ctrl＋滾輪或雙指縮放。'),
+      h('div', { class: 'btn-row no-print' }, toggle),
       textPre
     );
   }
@@ -329,7 +296,7 @@
     document.title = '海豹學院｜FDE 商業情境實戰';
     var done = FDE.exporter.completedCount(data, groups);
 
-    var nameInput = h('input', { type: 'text', id: 'student-name', autocomplete: 'name', maxlength: '50', placeholder: '匯出作答時會寫入檔案' });
+    var nameInput = h('input', { type: 'text', id: 'student-name', autocomplete: 'name', maxlength: '50', placeholder: '會寫入匯出檔' });
     nameInput.value = data.studentName;
     nameInput.addEventListener('input', function () {
       data.studentName = nameInput.value;
@@ -341,17 +308,17 @@
       var now = new Date();
       if (kind === 'md') FDE.exporter.download(FDE.exporter.fileName(data, now, 'md'), FDE.exporter.buildMarkdown(data, groups, now), 'text/markdown');
       else FDE.exporter.download(FDE.exporter.fileName(data, now, 'json'), FDE.exporter.buildJson(data, now), 'application/json');
-      toast('已產生匯出檔案，請查看瀏覽器的下載項目');
+      toast('已匯出');
     }
 
     return [
       h('section', { class: 'hero' },
         h('h1', null, '海豹學院｜FDE 商業情境實戰'),
         h('p', { class: 'lead' }, '讀懂 ERD、拆解客戶需求、用自然語言提出解法'),
-        h('p', null, '三大題組、12 個連續情境。每個情境都分成「調查 → 解決 → 追加情境」三階段，請用自己的話說明你的判斷與做法。這裡不考 SQL 語法，也不需要寫 SQL。')
+        h('p', null, '每題分三階段，用自己的話說明你的判斷與做法，不需要寫 SQL。')
       ),
-      loaded.recovered ? h('p', { class: 'notice notice-warn' }, '先前儲存在這個瀏覽器的作答資料格式已損壞，無法讀取，已改用空白資料開始。損壞的原始內容仍保留在瀏覽器中（' + S.BACKUP_KEY + '），可請老師或助教協助取回。') : null,
-      loaded.unavailable ? h('p', { class: 'notice notice-warn' }, '這個瀏覽器目前無法使用本機儲存（可能是無痕模式或設定限制），重新整理後作答會消失。請記得匯出作答。') : null,
+      loaded.recovered ? h('p', { class: 'notice notice-warn' }, '先前的作答資料已損壞，無法讀取。原始內容保留在瀏覽器的 ' + S.BACKUP_KEY + '。') : null,
+      loaded.unavailable ? h('p', { class: 'notice notice-warn' }, '這個瀏覽器無法儲存作答，重新整理後會消失，請記得匯出。') : null,
       h('section', { class: 'card overview' },
         h('div', { class: 'field' },
           h('label', { for: 'student-name' }, '學生姓名'),
@@ -374,20 +341,11 @@
         );
       })),
       h('section', { class: 'card' },
-        h('h2', null, '怎麼作答'),
-        h('p', null, '每一題都請「說明你的判斷與做法」：你會看哪些資料、用什麼條件判斷、怎麼處理例外、怎麼驗證結果。可以用條列、流程或段落。'),
-        h('blockquote', { class: 'example' },
-          h('p', { class: 'eyebrow' }, '自然語言作答示例'),
-          h('p', null, '我會先找出付款狀態成功但報名仍待付款的紀錄，透過報名編號確認對應的學生與課程。接著檢查是否存在後續退款，將可修復和需人工確認的紀錄分開。正式修改前先保存異常清單，修改後再比對結果，確保不會開通已退款的課程。')
-        ),
-        h('p', null, '寫完後可以按「帶這題與我的回答去問 AI」，把題目和你的回答組成一份完整提問，複製後貼到 ChatGPT、Claude 等 AI 服務取得回饋，再回來修改答案。')
-      ),
-      h('section', { class: 'card' },
-        h('h2', null, '匯出與資料管理'),
-        h('p', { class: 'notice' }, '資料儲存於目前瀏覽器，換裝置不會同步。交作業或換電腦前，請先匯出作答。'),
+        h('h2', null, '匯出作答'),
+        h('p', { class: 'notice' }, '資料儲存於目前瀏覽器，換裝置不會同步。'),
         h('div', { class: 'btn-row' },
-          h('button', { type: 'button', class: 'btn btn-primary', onclick: function () { exportFile('md'); } }, '匯出作答（Markdown）'),
-          h('button', { type: 'button', class: 'btn', onclick: function () { exportFile('json'); } }, '匯出作答（JSON）'),
+          h('button', { type: 'button', class: 'btn btn-primary', onclick: function () { exportFile('md'); } }, '匯出 Markdown'),
+          h('button', { type: 'button', class: 'btn', onclick: function () { exportFile('json'); } }, '匯出 JSON'),
           h('a', { class: 'btn', href: '#/print' }, '列印作答'),
           h('button', { type: 'button', class: 'btn btn-danger-outline', onclick: function () { confirmDialog.showModal(); } }, '清除本機資料')
         )
@@ -420,7 +378,7 @@
       ),
       h('section', { class: 'card' },
         h('h2', null, '情境目錄'),
-        h('p', { class: 'meta' }, '已完成 ' + completedIn(group) + '／' + group.scenarios.length + '。四個情境共用同一張 ERD，建議依序作答。'),
+        h('p', { class: 'meta' }, '已完成 ' + completedIn(group) + '／' + group.scenarios.length),
         h('ol', { class: 'scenario-list' }, group.scenarios.map(function (s) {
           return h('li', null,
             h('a', { href: '#/group/' + group.id + '/' + s.id },
@@ -431,10 +389,9 @@
           );
         })),
         h('div', { class: 'btn-row no-print' }, groupAskButton(group)),
-        h('p', { class: 'hint no-print' }, '會帶入本題組的系統背景、ERD 文字結構、四個情境的題目，以及你在本題組的全部回答。'),
         privacyHint()
       ),
-      erdSection(group, 'h2'),
+      erdSection(group, 'h2', null),
       tablesSection(group, null),
       statusSection(group),
     ];
@@ -443,9 +400,9 @@
   /* ---------- 情境作答頁 ---------- */
 
   var TASKS = [
-    { field: 'investigation', label: '任務 A｜調查', help: '你會如何調查？要看哪些資料？如何辨識異常？' },
-    { field: 'solution', label: '任務 B｜解決', help: '你會如何解決？如何避免錯誤修改？如何驗證？' },
-    { field: 'edgeCase', label: '任務 C｜追加情境', help: '追加條件後，原方案要如何調整？' },
+    { field: 'investigation', label: '任務 A｜調查' },
+    { field: 'solution', label: '任務 B｜解決' },
+    { field: 'edgeCase', label: '任務 C｜追加情境' },
   ];
 
   function viewScenario(group, scenario) {
@@ -454,9 +411,9 @@
     var prev = group.scenarios[idx - 1];
     var next = group.scenarios[idx + 1];
 
-    function answerField(field, label, help, question, rows) {
+    function answerField(field, label, question, rows) {
       var id = 'ans-' + scenario.id + '-' + field;
-      var ta = h('textarea', { id: id, rows: String(rows), 'aria-describedby': id + '-help', placeholder: '用自己的話說明你的判斷與做法，可以條列。' });
+      var ta = h('textarea', { id: id, rows: String(rows), 'aria-describedby': question ? id + '-q' : null });
       ta.value = peek(scenario.id)[field];
       ta.addEventListener('input', function () {
         var rec = record(scenario.id);
@@ -466,8 +423,7 @@
       });
       return h('section', { class: 'card task' },
         h('h2', null, h('label', { for: id }, label)),
-        question ? h('p', { class: 'task-question' }, question) : null,
-        h('p', { class: 'hint', id: id + '-help' }, help),
+        question ? h('p', { class: 'task-question', id: id + '-q' }, question) : null,
         ta
       );
     }
@@ -476,7 +432,7 @@
     function paintDone() {
       var done = peek(scenario.id).completed;
       doneBtn.setAttribute('aria-pressed', String(done));
-      doneBtn.textContent = done ? '✓ 已完成（按一下取消）' : '標記完成';
+      doneBtn.textContent = done ? '✓ 已完成' : '標記完成';
       doneBtn.classList.toggle('btn-done', done);
     }
     doneBtn.addEventListener('click', function () {
@@ -510,15 +466,14 @@
     }, '複製本題回答');
 
     var erdDetails = h('details', { class: 'card erd-details' },
-      h('summary', null, '查看題組 ' + group.id + ' 的 ERD 與資料結構',
-        h('span', { class: 'summary-desc' }, '本題重點資料表：' + scenario.focusTables.join('、')))
+      h('summary', null, 'ERD 與資料結構',
+        h('span', { class: 'summary-desc' }, '本題重點：' + scenario.focusTables.join('、')))
     );
     var erdLoaded = false;
     erdDetails.addEventListener('toggle', function () {
       if (!erdDetails.open || erdLoaded) return;
       erdLoaded = true;
-      erdDetails.appendChild(h('p', null, group.background));
-      erdDetails.appendChild(erdSection(group, 'h3'));
+      erdDetails.appendChild(erdSection(group, 'h3', scenario.focusTables));
       erdDetails.appendChild(tablesSection(group, scenario.focusTables));
       erdDetails.appendChild(statusSection(group));
     });
@@ -536,12 +491,12 @@
         )
       ),
       h('div', { class: 'btn-row no-print' },
-        h('button', { type: 'button', class: 'btn', onclick: function () { openErdDialog(group); } }, '放大查看 ERD')),
+        h('button', { type: 'button', class: 'btn', onclick: function () { openErdDialog(group, scenario.focusTables); } }, '全螢幕查看 ERD')),
       erdDetails,
       TASKS.map(function (t) {
-        return answerField(t.field, t.label, t.help, scenario.tasks[t.field], 8);
+        return answerField(t.field, t.label, scenario.tasks[t.field], 8);
       }),
-      answerField('assumptions', '我的假設／待向客戶確認的問題（選填）', '有哪些事情題目沒說清楚、你需要先假設或回頭問客戶？', null, 4),
+      answerField('assumptions', '我的假設／待向客戶確認的問題（選填）', null, 4),
       h('section', { class: 'card' },
         h('h2', null, '驗收條件'),
         h('ul', null, scenario.acceptance.map(function (a) { return h('li', null, a); }))
@@ -610,6 +565,7 @@
     var parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
     var view;
     var activeGroup = null;
+    inlineBoard = null;
     if (parts.length === 0) view = viewHome();
     else if (parts[0] === 'print' && parts.length === 1) view = viewPrint();
     else if (parts[0] === 'group' && parts[1]) {

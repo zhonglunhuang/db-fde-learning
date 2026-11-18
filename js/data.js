@@ -5,6 +5,8 @@
   FDE.groups = [
     {
       id: 'A',
+    /* ERD 畫布上各資料表的預設位置 [x, y] */
+    layout: { students: [0, 0], courses: [0, 250], enrollments: [340, 120], payments: [680, 90] },
       name: '海豹學院線上課程管理系統',
       intro: '報名、付款、退款與名額限制：從一筆報名看懂金流與狀態的關係。',
       background:
@@ -192,6 +194,8 @@
     },
     {
       id: 'B',
+    /* ERD 畫布上各資料表的預設位置 [x, y] */
+    layout: { customers: [0, 0], coupon_redemptions: [0, 260], orders: [340, 40], order_payments: [340, 300], order_items: [680, 0], inventory_movements: [680, 290], products: [1020, 130] },
       name: '電商與庫存管理系統',
       intro: '毛利、庫存、折價券與報表效能：促銷之後才浮現的營運問題。',
       background:
@@ -440,6 +444,8 @@
     },
     {
       id: 'C',
+    /* ERD 畫布上各資料表的預設位置 [x, y] */
+    layout: { tenants: [0, 0], rooms: [0, 290], leases: [340, 80], rent_bills: [680, 0], deposit_deductions: [680, 270], deposit_refunds: [680, 510], rent_allocations: [1020, 0], bank_transactions: [1020, 240] },
       name: '海豹生活包租代管系統',
       intro: '租金對帳、房態、押金與個資：每一筆錢與每一份租約都要說得清楚。',
       background:
