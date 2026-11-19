@@ -175,7 +175,7 @@
           {
             id: 'operate-2', where: 'server',
             text: '直接查資料庫，確認剛才的報名與付款真的寫進去了。',
-            cmd: 'docker compose exec db psql -U academy -d academy -c "SELECT e.id, s.name, c.title, e.status FROM enrollments e JOIN students s ON s.id = e.student_id JOIN courses c ON c.id = e.course_id ORDER BY e.id;"\ndocker compose exec db psql -U academy -d academy -c "SELECT * FROM payments;"',
+            cmd: 'docker compose exec db psql -U academy -d academy -c "SELECT e.id, s.name, c.title, e.status\n  FROM enrollments e\n  JOIN students s ON s.id = e.student_id\n  JOIN courses c ON c.id = e.course_id\n  ORDER BY e.id;"\ndocker compose exec db psql -U academy -d academy -c "SELECT * FROM payments;"',
             expect: '看得到你的報名，以及對應的付款紀錄。',
           },
           {
