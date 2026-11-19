@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海豹學院｜課程報名（Day 06 部署實作）</title>
+  <style>
+    :root { --ink: #1d1d1f; --ink-2: #6e6e73; --bg: #f5f5f7; --paper: #fff; --fill: #e8e8ed; --blue: #0071e3; --green: #1d7a36; --green-tint: #e3f4e7; --amber: #b25000; --amber-tint: #fff1e0; --red: #d70015; --red-tint: #fdecee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; -webkit-font-smoothing: antialiased; }
+    main { max-width: 860px; margin: 0 auto; padding: 56px 22px 80px; }
+    h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 8px; }
+    h2 { font-size: 1.3rem; margin: 0 0 16px; }
+    p { margin: 0 0 12px; }
+    .sub { color: var(--ink-2); margin-bottom: 24px; }
+    .card { background: var(--paper); border-radius: 18px; padding: 28px; margin-bottom: 24px; }
+    .card > :last-child { margin-bottom: 0; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 14px 20px; border-radius: 14px; margin-bottom: 24px; font-size: 0.92rem; font-weight: 500; background: var(--fill); }
+    .status.ok { background: var(--green-tint); color: var(--green); }
+    .status.bad { background: var(--red-tint); color: #8a0010; }
+    .status small { font-weight: 400; opacity: 0.85; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+    input, select { width: 100%; font: inherit; color: inherit; background: #fff; border: 1px solid #86868b; border-radius: 12px; padding: 11px 14px; min-height: 48px; }
+    input:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.2); }
+    button { font: inherit; font-weight: 500; font-size: 0.94rem; min-height: 44px; padding: 10px 22px; border: 0; border-radius: 980px; cursor: pointer; background: var(--ink); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.small { min-height: 34px; padding: 4px 14px; font-size: 0.82rem; background: var(--blue); }
+    button:focus-visible { outline: 4px solid rgba(0, 113, 227, 0.5); outline-offset: 2px; }
+    .form-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 20px; }
+    .msg { font-size: 0.9rem; font-weight: 500; margin: 0; }
+    .msg.ok { color: var(--green); }
+    .msg.err { color: var(--red); }
+    .scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); white-space: nowrap; }
+    th { color: var(--ink-2); font-size: 0.78rem; }
+    td.num { font-variant-numeric: tabular-nums; }
+    .badge { display: inline-block; font-size: 0.74rem; font-weight: 600; padding: 3px 10px; border-radius: 980px; background: var(--fill); color: var(--ink-2); }
+    .badge.paid { background: var(--green-tint); color: var(--green); }
+    .badge.pending { background: var(--amber-tint); color: var(--amber); }
+    .empty { color: var(--ink-2); }
+    footer { color: var(--ink-2); font-size: 0.8rem; }
+    @media (max-width: 560px) { main { padding: 36px 16px 56px; } .card { padding: 20px; margin-bottom: 16px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>海豹學院｜課程報名</h1>
+  <p class="sub">Day 06 部署實作的範例應用程式：前端 → API → PostgreSQL。</p>
+
+  <div id="status" class="status" role="status" aria-live="polite"><span class="dot"></span>正在檢查 API 與資料庫…</div>
+
+  <section class="card">
+    <h2>課程名額</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">課程</th><th scope="col">售價</th><th scope="col">已報名／名額</th></tr></thead>
+        <tbody id="courses"><tr><td colspan="3" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>我要報名</h2>
+    <form id="form">
+      <div class="grid">
+        <div><label for="name">姓名</label><input id="name" name="name" required maxlength="50" autocomplete="name"></div>
+        <div><label for="email">Email</label><input id="email" name="email" type="email" required maxlength="120" autocomplete="email"></div>
+        <div><label for="course">課程</label><select id="course" name="courseId" required></select></div>
+      </div>
+      <div class="form-foot">
+        <button type="submit" id="submit">送出報名</button>
+        <p id="msg" class="msg" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>報名紀錄</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">編號</th><th scope="col">學生</th><th scope="col">課程</th><th scope="col">金額</th><th scope="col">狀態</th><th scope="col"><span style="position:absolute;clip-path:inset(50%)">操作</span></th></tr></thead>
+        <tbody id="enrollments"><tr><td colspan="6" class="empty">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>這是練習用的系統，付款為模擬，請勿輸入真實個資。</footer>
+</main>
+
+<script>
+(function () {
+  var STATUS = { pending: '待付款', paid: '已付款', cancelled: '已取消', expired: '逾期未付款', refunded: '已退款' };
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) { return 'NT$ ' + Number(n).toLocaleString('zh-TW'); };
+
+  function api(path, options) {
+    return fetch('api/' + path, options).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (body) {
+        if (!res.ok) throw new Error(body.error || ('API 回應 ' + res.status));
+        return body;
+      });
+    });
+  }
+
+  function cell(text, cls) {
+    var td = document.createElement('td');
+    if (cls) td.className = cls;
+    if (text instanceof Node) td.appendChild(text); else td.textContent = text;
+    return td;
+  }
+
+  function row(cells) {
+    var tr = document.createElement('tr');
+    cells.forEach(function (c) { tr.appendChild(c); });
+    return tr;
+  }
+
+  function fill(tbody, rows, cols, emptyText) {
+    tbody.textContent = '';
+    if (!rows.length) {
+      var td = cell(emptyText, 'empty');
+      td.colSpan = cols;
+      tbody.appendChild(row([td]));
+    } else rows.forEach(function (r) { tbody.appendChild(r); });
+  }
+
+  function setMsg(text, ok) {
+    $('msg').textContent = text;
+    $('msg').className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+
+  function checkHealth() {
+    var el = $('status');
+    return api('health').then(function (h) {
+      el.className = 'status ok';
+      el.innerHTML = '<span class="dot"></span>';
+      el.appendChild(document.createTextNode('API 與資料庫連線正常 '));
+      var small = document.createElement('small');
+      small.textContent = 'API 容器 ' + h.container + '・資料庫時間 ' + new Date(h.dbTime).toLocaleString('zh-TW');
+      el.appendChild(small);
+    }, function (e) {
+      el.className = 'status bad';
+      el.innerHTML = '<span class="dot"></span>';
+      el.appendChild(document.createTextNode('連不到 API 或資料庫：' + e.message + '。請在機器上執行 docker compose ps 與 docker compose logs api。'));
+    });
+  }
+
+  function loadCourses() {
+    return api('courses').then(function (list) {
+      fill($('courses'), list.map(function (c) {
+        return row([cell(c.title), cell(money(c.price), 'num'), cell(c.taken + '／' + c.capacity + (c.taken >= c.capacity ? '（額滿）' : ''), 'num')]);
+      }), 3, '目前沒有上架的課程');
+      var select = $('course');
+      var keep = select.value;
+      select.textContent = '';
+      list.forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.title + (c.taken >= c.capacity ? '（額滿）' : '');
+        select.appendChild(o);
+      });
+      if (keep) select.value = keep;
+    });
+  }
+
+  function loadEnrollments() {
+    return api('enrollments').then(function (list) {
+      fill($('enrollments'), list.map(function (e) {
+        var badge = document.createElement('span');
+        badge.className = 'badge ' + e.status;
+        badge.textContent = STATUS[e.status] || e.status;
+        var action = document.createTextNode('');
+        if (e.status === 'pending') {
+          action = document.createElement('button');
+          action.type = 'button';
+          action.className = 'small';
+          action.textContent = '模擬付款';
+          action.setAttribute('aria-label', '模擬付款：報名編號 ' + e.id);
+          action.addEventListener('click', function () {
+            action.disabled = true;
+            api('enrollments/' + e.id + '/pay', { method: 'POST' }).then(function (r) {
+              setMsg('報名 #' + e.id + ' 付款成功（' + r.transactionNo + '）', true);
+            }, function (err) { setMsg(err.message, false); }).then(refresh);
+          });
+        }
+        return row([cell('#' + e.id, 'num'), cell(e.student), cell(e.course), cell(money(e.price), 'num'), cell(badge), cell(action)]);
+      }), 6, '還沒有報名紀錄');
+    });
+  }
+
+  function refresh() {
+    return Promise.all([loadCourses(), loadEnrollments()]).catch(function () {
+      fill($('courses'), [], 3, '讀取失敗');
+      fill($('enrollments'), [], 6, '讀取失敗');
+    });
+  }
+
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    $('submit').disabled = true;
+    setMsg('', true);
+    api('enrollments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: $('name').value, email: $('email').value, courseId: Number($('course').value) }),
+    }).then(function (r) {
+      setMsg('報名成功，編號 #' + r.id + '，請在下方按「模擬付款」。', true);
+      $('name').value = '';
+      $('email').value = '';
+    }, function (e) { setMsg(e.message, false); }).then(function () {
+      $('submit').disabled = false;
+      return refresh();
+    });
+  });
+
+  checkHealth();
+  refresh();
+})();
+</script>
+</body>
+</html>

@@ -340,6 +340,18 @@
           h('a', { class: 'btn btn-primary', href: '#/group/' + g.id }, '進入題組 ' + g.id)
         );
       })),
+      h('h2', { class: 'section-title' }, '實作課'),
+      (function () {
+        var p = FDE.lab.progress(data.lab.done);
+        return h('article', { class: 'card lab-card' },
+          h('div', null,
+            h('p', { class: 'eyebrow' }, 'Day 06'),
+            h('h3', null, '部署實作'),
+            h('p', null, FDE.lab.lead + '。'),
+            h('p', { class: 'meta' }, p.total + ' 個必做步驟・已完成 ' + p.done + ' 個')),
+          h('a', { class: 'btn btn-primary', href: '#/day06' }, '開始實作'));
+      })(),
+      h('h2', { class: 'section-title' }, '作答紀錄'),
       h('section', { class: 'card' },
         h('h2', null, '匯出作答'),
         h('p', { class: 'notice' }, '資料儲存於目前瀏覽器，換裝置不會同步。'),
@@ -513,6 +525,178 @@
     ];
   }
 
+  /* ---------- Day 06 部署實作 ---------- */
+
+  var WHERE = { local: '你的電腦', server: 'Droplet', web: '瀏覽器' };
+
+  function labCtx() {
+    var L = FDE.lab;
+    return { ip: L.isIp(data.lab.ip) ? data.lab.ip : '', domain: L.isDomain(data.lab.domain) ? data.lab.domain : '' };
+  }
+
+  function viewLab() {
+    var L = FDE.lab;
+    document.title = L.title + '｜海豹學院 FDE';
+    var painters = [];
+    function paint() { painters.forEach(function (fn) { fn(); }); }
+
+    /* 進度 */
+    var progressLabel = h('label', { for: 'lab-progress' });
+    var progressBar = h('progress', { id: 'lab-progress' });
+    painters.push(function () {
+      var p = L.progress(data.lab.done);
+      progressLabel.textContent = '必做步驟：已完成 ' + p.done + '／' + p.total;
+      progressBar.max = p.total;
+      progressBar.value = p.done;
+    });
+
+    /* IP 與網域 */
+    function valueField(key, label, placeholder, valid, badMsg) {
+      var id = 'lab-' + key;
+      var input = h('input', { type: 'text', id: id, placeholder: placeholder, autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', inputmode: key === 'ip' ? 'decimal' : 'url', 'aria-describedby': id + '-msg' });
+      var msg = h('p', { class: 'hint field-msg', id: id + '-msg' });
+      input.value = data.lab[key];
+      function check() {
+        var v = data.lab[key];
+        var bad = v !== '' && !valid(v);
+        msg.textContent = bad ? badMsg : '';
+        msg.classList.toggle('error', bad);
+        input.setAttribute('aria-invalid', String(bad));
+      }
+      input.addEventListener('input', function () {
+        data.lab[key] = input.value.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        check();
+        commit();
+        paint();
+      });
+      check();
+      return h('div', { class: 'field' }, h('label', { for: id }, label), input, msg);
+    }
+
+    /* 指令區塊 */
+    function codeBlock(template) {
+      var pre = h('pre', { class: 'cmd', tabindex: '0' });
+      var btn = h('button', { type: 'button', class: 'btn btn-sm cmd-copy' }, '複製');
+      painters.push(function () { pre.textContent = L.fill(template, labCtx()); });
+      btn.addEventListener('click', function () {
+        var c = labCtx();
+        if (template.indexOf('{{IP}}') !== -1 && !c.ip) { toast('請先在上方填入 Droplet IP'); return; }
+        if (template.indexOf('{{DOMAIN}}') !== -1 && !c.domain) { toast('請先在上方填入網域'); return; }
+        var text = L.fill(template, c);
+        copyText(text).then(function (ok) {
+          if (ok) toast('已複製指令');
+          else openPromptDialog('複製指令', text, { mode: 'manual', unanswered: false });
+        });
+      });
+      return h('div', { class: 'cmd-wrap' }, pre, btn);
+    }
+
+    function stepItem(step, section, sectionMeta) {
+      var id = 'step-' + step.id;
+      var box = h('input', { type: 'checkbox', id: id });
+      var li = h('li', { class: 'lab-step' });
+      var text = h('label', { for: id, class: 'step-text' });
+      painters.push(function () {
+        text.textContent = L.fill(step.text, labCtx());
+        box.checked = !!data.lab.done[step.id];
+        li.classList.toggle('is-done', box.checked);
+      });
+      box.addEventListener('change', function () {
+        if (box.checked) data.lab.done[step.id] = true;
+        else delete data.lab.done[step.id];
+        commit();
+        paint();
+      });
+      var link = null;
+      if (step.link) {
+        link = h('a', { class: 'btn btn-sm step-link', target: '_blank', rel: 'noopener noreferrer' });
+        painters.push(function () {
+          var c = labCtx();
+          var ready = !(step.link.indexOf('{{IP}}') !== -1 && !c.ip) && !(step.link.indexOf('{{DOMAIN}}') !== -1 && !c.domain);
+          link.textContent = '開啟 ' + L.fill(step.link, c) + ' ↗';
+          if (ready) { link.href = L.fill(step.link, c); link.removeAttribute('aria-disabled'); }
+          else { link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true'); }
+        });
+      }
+      append(li, [
+        box,
+        h('div', { class: 'step-body' },
+          h('div', { class: 'step-head' }, h('span', { class: 'where where-' + step.where }, WHERE[step.where]), text),
+          step.list ? h('ul', { class: 'step-list' }, step.list.map(function (l) { return h('li', null, l); })) : null,
+          step.cmd ? codeBlock(step.cmd) : null,
+          link,
+          step.expect ? h('p', { class: 'expect' }, h('strong', null, '應該看到'), step.expect) : null,
+          step.note ? h('p', { class: 'hint step-note' }, step.note) : null
+        ),
+      ]);
+      return li;
+    }
+
+    var sections = L.sections.map(function (sec, i) {
+      var meta = h('span', { class: 'badge' });
+      painters.push(function () {
+        var n = sec.steps.filter(function (st) { return data.lab.done[st.id]; }).length;
+        meta.textContent = n === sec.steps.length ? '已完成' : n + '／' + sec.steps.length;
+        meta.className = 'badge' + (n === sec.steps.length ? ' badge-done' : n ? ' badge-progress' : '');
+      });
+      return h('section', { class: 'card lab-section', id: 'lab-' + sec.id },
+        h('div', { class: 'lab-head' },
+          h('p', { class: 'eyebrow' }, sec.optional ? '選修' : '第 ' + (i + 1) + ' 節'),
+          meta
+        ),
+        h('h2', null, sec.title),
+        h('p', { class: 'lab-goal' }, sec.goal),
+        h('ol', { class: 'lab-steps' }, sec.steps.map(function (st) { return stepItem(st, sec); })),
+        h('div', { class: 'btn-row no-print' },
+          h('button', {
+            type: 'button', class: 'btn btn-sm',
+            onclick: function () { openPromptDialog('卡在「' + sec.title + '」？帶去問 AI', FDE.prompt.buildLabPrompt(L, sec), { mode: 'ai', unanswered: false }); },
+          }, '卡住了？帶去問 AI'))
+      );
+    });
+
+    var out = [
+      h('nav', { class: 'breadcrumb no-print', 'aria-label': '導覽路徑' }, h('a', { href: '#/' }, '首頁'), ' ／ Day 06'),
+      h('section', { class: 'hero' },
+        h('p', { class: 'eyebrow' }, 'Day 06'),
+        h('h1', null, '部署實作'),
+        h('p', { class: 'lead' }, L.lead),
+        h('p', null, '照順序執行每一步，完成就打勾。標示「你的電腦」的指令在自己的終端機執行，標示「Droplet」的在連線後的機器上執行。')
+      ),
+      h('section', { class: 'card' },
+        h('h2', null, '你會部署的架構'),
+        h('div', { class: 'arch', role: 'img', 'aria-label': '瀏覽器連到 Droplet 上的 Caddy，Caddy 把 /api 轉給 Node.js API，API 讀寫 PostgreSQL' },
+          L.architecture.map(function (a, i) {
+            return [
+              i ? h('span', { class: 'arch-arrow', 'aria-hidden': 'true' }, '→') : null,
+              h('div', { class: 'arch-box' + (i ? ' arch-in' : '') }, h('strong', null, a.name), h('span', null, a.sub)),
+            ];
+          })
+        ),
+        h('p', { class: 'hint' }, '藍色的三個容器都在同一台 Droplet 上，由 Docker Compose 管理。'),
+        h('h3', { class: 'sub-h' }, '開始前'),
+        h('ul', null, L.prerequisites.map(function (t) { return h('li', null, t); }))
+      ),
+      h('section', { class: 'card lab-setup' },
+        h('div', { class: 'overview' },
+          valueField('ip', 'Droplet IP', '第 2 節取得，例如 203.0.113.10', L.isIp, 'IP 格式應為四組數字，例如 203.0.113.10'),
+          valueField('domain', '網域（選修）', '例如 lab.example.com', L.isDomain, '請只填網域，例如 lab.example.com')
+        ),
+        h('p', { class: 'hint' }, '填入後，下方指令會自動帶入。只存在這個瀏覽器。'),
+        h('div', { class: 'progress-block' }, progressLabel, progressBar)
+      ),
+      sections,
+      h('section', { class: 'card' },
+        h('h2', null, '常見問題'),
+        L.faq.map(function (f) {
+          return h('details', { class: 'table-details' }, h('summary', null, f.q), h('p', { class: 'faq-a' }, f.a));
+        })
+      ),
+    ];
+    paint();
+    return out;
+  }
+
   /* ---------- 列印頁 ---------- */
 
   function viewPrint() {
@@ -568,6 +752,7 @@
     inlineBoard = null;
     if (parts.length === 0) view = viewHome();
     else if (parts[0] === 'print' && parts.length === 1) view = viewPrint();
+    else if (parts[0] === 'day06' && parts.length === 1) { view = viewLab(); activeGroup = 'day06'; }
     else if (parts[0] === 'group' && parts[1]) {
       var group = groups.filter(function (g) { return g.id === parts[1].toUpperCase(); })[0];
       var scenario = group && parts[2] ? group.scenarios.filter(function (s) { return s.id === parts[2].toUpperCase(); })[0] : null;

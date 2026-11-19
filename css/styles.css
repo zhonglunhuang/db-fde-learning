@@ -277,6 +277,63 @@ th { color: var(--ink-2); font-weight: 600; font-size: 0.78rem; white-space: now
 .pager > :first-child { justify-self: start; }
 .pager > :last-child { justify-self: end; }
 
+/* ---------- Day 06 部署實作 ---------- */
+
+.lab-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px; }
+.lab-card > div { flex: 1 1 320px; }
+.lab-card > div > :last-child { margin-bottom: 0; }
+.lab-card p { color: var(--ink-2); font-size: 0.95rem; }
+.lab-card .meta { font-size: 0.82rem; }
+
+.arch { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-bottom: 12px; }
+.arch-box { flex: 1 1 130px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 14px 16px; border-radius: 12px; background: var(--bg); }
+.arch-box strong { font-weight: 600; font-size: 0.95rem; }
+.arch-box span { font-size: 0.78rem; color: var(--ink-2); }
+.arch-in { background: var(--blue-tint); }
+.arch-arrow { align-self: center; color: var(--ink-3); font-weight: 600; }
+
+.lab-setup .overview { align-items: start; margin-bottom: 4px; }
+.lab-setup .progress-block { margin-top: 24px; }
+.lab-setup progress { margin-bottom: 0; }
+.field-msg { min-height: 1.3em; margin: 6px 0 0; }
+.field-msg.error { color: var(--red); }
+
+.lab-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.lab-head .eyebrow { margin: 0; }
+.lab-section h2 { margin-bottom: 6px; }
+.lab-goal { color: var(--ink-2); margin-bottom: 8px; }
+.lab-section { scroll-margin-top: 72px; }
+.lab-section > .btn-row { margin: 24px 0 0; }
+
+.lab-steps { list-style: none; padding: 0; margin: 0; }
+.lab-step { display: flex; gap: 14px; align-items: flex-start; padding: 20px 0; margin: 0; border-top: 1px solid var(--hairline); }
+.lab-step + .lab-step { margin-top: 0; }
+.lab-step > input[type="checkbox"] { flex: none; width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--green); cursor: pointer; }
+.step-body { flex: 1; min-width: 0; }
+.step-body > :last-child { margin-bottom: 0; }
+.step-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-bottom: 12px; }
+.step-text { flex: 1 1 260px; margin: 0; font-weight: 500; font-size: 1rem; cursor: pointer; }
+.is-done .step-text { color: var(--ink-2); }
+.where { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 980px; white-space: nowrap; }
+.where-local { background: var(--amber-tint); color: var(--amber); }
+.where-server { background: var(--ink); color: #fff; }
+.where-web { background: var(--blue-tint); color: var(--blue-text); }
+.step-list { font-size: 0.95rem; margin-bottom: 12px; }
+
+.cmd-wrap { position: relative; margin-bottom: 12px; }
+.cmd {
+  margin: 0; padding: 16px 84px 16px 18px; border-radius: 12px; overflow-x: auto;
+  background: #1d1d1f; color: #f5f5f7; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; white-space: pre;
+}
+.cmd-copy { position: absolute; top: 8px; right: 8px; min-height: 32px; padding: 4px 14px; background: rgba(255, 255, 255, 0.16); color: #fff; }
+.cmd-copy:hover { background: rgba(255, 255, 255, 0.28); }
+.step-link { margin-bottom: 12px; max-width: 100%; }
+.step-link[aria-disabled="true"] { color: var(--ink-3); cursor: default; }
+.expect { font-size: 0.9rem; color: var(--green); margin-bottom: 8px; }
+.expect strong { font-weight: 600; margin-right: 8px; }
+.step-note { margin-bottom: 0; }
+.faq-a { color: var(--ink-2); font-size: 0.95rem; padding-bottom: 16px; margin: 0; }
+
 /* ---------- 對話框 ---------- */
 
 .modal {
@@ -342,7 +399,11 @@ th { color: var(--ink-2); font-weight: 600; font-size: 0.78rem; white-space: now
   .board-toolbar .b-opt { display: none; }
   .group-card { margin-bottom: 0; }
   .brand-sub { display: none; }
-  .site-header nav a { padding: 6px 12px; }
+  .site-header nav a { padding: 6px 9px; }
+  .lab-step { gap: 12px; padding: 16px 0; }
+  .cmd { padding: 44px 14px 14px; }
+  .arch-arrow { display: none; }
+  .lab-card .btn { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -357,6 +418,8 @@ th { color: var(--ink-2); font-weight: 600; font-size: 0.78rem; white-space: now
   main.wrap { padding: 0; }
   h1 { font-size: 20pt; }
   .card { border-top: 1px solid #999; border-radius: 0; padding: 10px 0; break-inside: auto; }
+  .cmd { background: #fff; color: #000; border: 1px solid #999; white-space: pre-wrap; word-break: break-all; padding: 8px; }
+  .lab-step { break-inside: avoid; }
   .print-block { break-inside: avoid; }
   .print-group { break-before: page; }
   .print-group:first-of-type { break-before: auto; }

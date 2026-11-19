@@ -2,8 +2,10 @@
 const assert = require('node:assert/strict');
 
 globalThis.window = globalThis;
-['data', 'storage', 'erd', 'board', 'prompt', 'export'].forEach((f) => require('../js/' + f + '.js'));
-const { groups, storage: S, erd, board, prompt, exporter } = globalThis.FDE;
+['data', 'lab', 'storage', 'erd', 'board', 'prompt', 'export'].forEach((f) => require('../js/' + f + '.js'));
+const { groups, lab, storage: S, erd, board, prompt, exporter } = globalThis.FDE;
+const fs = require('node:fs');
+const path = require('node:path');
 
 let passed = 0;
 function test(name, fn) {
@@ -149,6 +151,64 @@ test('清除只移除本網站的 key', () => {
   const st = fakeStorage({ [S.KEY]: '{}', [S.BACKUP_KEY]: 'x', 'other-site-key': 'keep' });
   S.clear(st);
   assert.deepEqual(st.keys(), ['other-site-key']);
+});
+
+test('部署實作的 IP、網域與勾選進度可存取，異常值會被濾掉', () => {
+  const st = fakeStorage();
+  const d = S.emptyData();
+  d.lab = { ip: '203.0.113.10', domain: 'lab.example.com', done: { 'key-1': true } };
+  S.save(st, d);
+  assert.deepEqual(S.load(st).data.lab, d.lab);
+  const odd = fakeStorage({ [S.KEY]: JSON.stringify({ lab: { ip: 5, done: { a: 'yes', b: true } } }) });
+  assert.deepEqual(S.load(odd).data.lab, { ip: '', domain: '', done: { b: true } });
+});
+
+console.log('Day 06 部署實作');
+test('步驟編號不重複，每步都有執行位置，佔位符只有 IP 與網域', () => {
+  const steps = lab.allSteps();
+  assert.equal(new Set(steps.map((s) => s.id)).size, steps.length);
+  steps.forEach((s) => {
+    assert.ok(['local', 'server', 'web'].includes(s.where), s.id);
+    assert.ok(s.text.length > 5, s.id);
+    const all = [s.text, s.cmd || '', s.link || ''].join(' ');
+    assert.deepEqual((all.match(/\{\{\w+\}\}/g) || []).filter((m) => m !== '{{IP}}' && m !== '{{DOMAIN}}'), [], s.id);
+    assert.ok(!/[\u201c\u201d\u2018\u2019]/.test(s.cmd || ''), s.id + ' 指令含全形引號');
+  });
+  assert.equal(lab.sections[lab.sections.length - 1].id, 'destroy');
+});
+test('帶入 IP／網域，未填時顯示提示字；進度不計選修', () => {
+  assert.equal(lab.fill('ssh root@{{IP}}', { ip: '203.0.113.10' }), 'ssh root@203.0.113.10');
+  assert.equal(lab.fill('ssh root@{{IP}} {{DOMAIN}}', {}), 'ssh root@你的IP 你的網域');
+  assert.ok(lab.isIp('203.0.113.10') && !lab.isIp('203.0.113') && !lab.isIp('999.1.1.1') && !lab.isIp('1.1.1.1; rm -rf /'));
+  assert.ok(lab.isDomain('lab.example.com') && !lab.isDomain('http://x.com') && !lab.isDomain('a b.com') && !lab.isDomain('x.com;ls'));
+  const optional = lab.sections.filter((s) => s.optional).flatMap((s) => s.steps);
+  const done = {};
+  lab.allSteps().forEach((s) => { done[s.id] = true; });
+  assert.deepEqual(lab.progress(done), { total: lab.allSteps().length - optional.length, done: lab.allSteps().length - optional.length });
+  assert.equal(lab.progress({ [optional[0].id]: true }).done, 0);
+});
+test('教材指令與範例應用程式的檔案一致', () => {
+  const dir = path.join(__dirname, '..', 'day06-app');
+  ['docker-compose.yml', 'Caddyfile', '.env.example', 'db/init.sql', 'api/Dockerfile', 'api/server.js', 'api/package-lock.json', 'web/index.html']
+    .forEach((f) => assert.ok(fs.existsSync(path.join(dir, f)), f));
+  const env = fs.readFileSync(path.join(dir, '.env.example'), 'utf8');
+  assert.ok(/^POSTGRES_PASSWORD=change-me$/m.test(env) && /^SITE_ADDRESS=:80$/m.test(env));
+  const compose = fs.readFileSync(path.join(dir, 'docker-compose.yml'), 'utf8');
+  ['db:', 'api:', 'web:', 'POSTGRES_USER: academy', 'POSTGRES_DB: academy'].forEach((k) => assert.ok(compose.includes(k), k));
+  const cmds = lab.allSteps().map((s) => s.cmd || '').join('\n');
+  assert.ok(cmds.includes('git clone ' + lab.repo) && cmds.includes('cd db-fde-learning/day06-app'));
+  assert.ok(cmds.includes('s/change-me/') && cmds.includes('psql -U academy -d academy'));
+  const sql = fs.readFileSync(path.join(dir, 'db/init.sql'), 'utf8');
+  groups[0].tables.forEach((t) => {
+    assert.ok(sql.includes('CREATE TABLE ' + t.name + ' ('), t.name);
+    t.columns.forEach((c) => assert.ok(new RegExp('\\n\\s+' + c.name + '\\s').test(sql), t.name + '.' + c.name));
+  });
+  groups[0].statuses.forEach((st) => st.values.forEach((v) => assert.ok(sql.includes("'" + v.value + "'"), st.field + ' ' + v.value)));
+});
+test('卡關 Prompt 帶入該節步驟，不含學員的 IP', () => {
+  const p = prompt.buildLabPrompt(lab, lab.sections[4]);
+  ['部署助教', '繁體中文', 'docker compose up -d --build', '應該看到', '不要要求我提供密碼'].forEach((k) => assert.ok(p.includes(k), k));
+  assert.ok(p.includes('http://你的IP') && !p.includes('{{'));
 });
 
 console.log('匯出');

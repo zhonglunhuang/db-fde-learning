@@ -146,7 +146,32 @@
     return ['題組 ' + group.id + '｜' + group.name, '情境 ' + scenario.id + '｜' + scenario.title, '', answerBlock(rec)].join('\n');
   }
 
+  /**
+   * 部署實作卡關時的提問：帶入這一節的步驟與指令，請學員自行貼上錯誤訊息。
+   * 不帶入學員的 IP 與網域。
+   */
+  function buildLabPrompt(lab, section) {
+    var WHERE = { local: '自己電腦的終端機', server: 'Droplet（已用 ssh 連線）', web: '瀏覽器' };
+    var steps = section.steps.map(function (st, i) {
+      var lines = [(i + 1) + '. 【' + WHERE[st.where] + '】' + lab.fill(st.text)];
+      if (st.list) st.list.forEach(function (l) { lines.push('   - ' + l); });
+      if (st.cmd) lines.push(lab.fill(st.cmd).split('\n').map(function (l) { return '   $ ' + l; }).join('\n'));
+      if (st.link) lines.push('   開啟 ' + lab.fill(st.link));
+      if (st.expect) lines.push('   應該看到：' + st.expect);
+      return lines.join('\n');
+    }).join('\n');
+    return [
+      '你是一位有耐心的部署助教，請用繁體中文協助我排除問題。',
+      '規則：\n- 先用一兩句話說明最可能的原因，再告訴我下一步要執行什麼指令、在哪裡執行。\n- 一次只給一個步驟，等我回報結果再繼續。\n- 我是初學者，請避免一次丟出多種做法。\n- 不要要求我提供密碼、私鑰或 .env 的內容。',
+      '【課程情境】\n海豹學院 Day 06 部署實作：在 DigitalOcean 開一台 Ubuntu 24.04 的 Droplet（1 GB 記憶體），用 Docker Compose 部署三個容器：web（Caddy，對外 80／443，提供前端並把 /api 轉給 api）、api（Node.js）、db（PostgreSQL 17，資料存在 volume）。日常操作使用 deploy 使用者，程式碼在 ~/db-fde-learning/day06-app。',
+      '【我卡在這一節】' + section.title + '\n' + steps,
+      '【我卡住的步驟】\n（請填寫第幾步）',
+      '【我執行的指令與完整錯誤訊息】\n（請貼上終端機的輸出；貼上前請移除密碼等機密）',
+    ].join('\n\n');
+  }
+
   FDE.prompt = {
+    buildLabPrompt: buildLabPrompt,
     buildScenarioPrompt: buildScenarioPrompt,
     buildGroupPrompt: buildGroupPrompt,
     buildAnswerText: buildAnswerText,

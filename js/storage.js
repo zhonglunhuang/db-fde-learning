@@ -12,7 +12,12 @@
   }
 
   function emptyData() {
-    return { version: VERSION, studentName: '', answers: {} };
+    return { version: VERSION, studentName: '', answers: {}, lab: emptyLab() };
+  }
+
+  /** Day 06 部署實作的進度：學員填的 Droplet IP、網域與已勾選的步驟。 */
+  function emptyLab() {
+    return { ip: '', domain: '', done: {} };
   }
 
   function str(v) {
@@ -37,6 +42,16 @@
         rec.updatedAt = str(a.updatedAt);
         out.answers[id] = rec;
       });
+    }
+    var lab = raw.lab;
+    if (lab && typeof lab === 'object' && !Array.isArray(lab)) {
+      out.lab.ip = str(lab.ip).slice(0, 45);
+      out.lab.domain = str(lab.domain).slice(0, 253);
+      if (lab.done && typeof lab.done === 'object' && !Array.isArray(lab.done)) {
+        Object.keys(lab.done).forEach(function (id) {
+          if (lab.done[id] === true) out.lab.done[id] = true;
+        });
+      }
     }
     return out;
   }

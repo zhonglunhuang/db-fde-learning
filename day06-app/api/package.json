@@ -1,0 +1,9 @@
+{
+  "name": "seal-academy-day06-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "海豹學院 Day 06 部署實作的範例 API",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "pg": "^8.13.0" }
+}

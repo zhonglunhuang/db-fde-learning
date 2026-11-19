@@ -2,6 +2,8 @@
 
 讀懂 ERD、拆解客戶需求、用自然語言提出解法。三大題組、12 個連續情境，每個情境分成「調查 → 解決 → 追加情境」三階段。**考商業情境理解與資料庫思維，不考 SQL 語法。**
 
+另有 **Day 06 部署實作**：學員在 DigitalOcean 開一台機器，照頁面步驟把 `day06-app/`（前端 + API + PostgreSQL）用 Docker Compose 部署上線。
+
 純靜態網站：只有 HTML、CSS、JavaScript，沒有建置步驟、後端、登入或 AI 金鑰。學生的回答只存在自己瀏覽器的 localStorage。
 
 ## 本機啟動
@@ -29,12 +31,23 @@ css/styles.css      樣式（Apple 現代風格：淺灰底、白色圓角卡片
 js/data.js          三組背景、ERD（資料表／關聯／狀態值／畫布位置）與 12 題內容  ← 改題目只改這裡
 js/erd.js           ERD 文字版（AI Prompt 與純文字檢視用）
 js/board.js         ERD 畫布：平移、縮放、拖曳資料表、全螢幕
-js/prompt.js        題組級／情境級 AI Prompt 組裝
+js/lab.js           Day 06 部署實作的步驟、指令與常見問題  ← 改實作步驟只改這裡
+js/prompt.js        題組級／情境級 AI Prompt、部署卡關 Prompt 組裝
 js/storage.js       localStorage 讀寫、損壞處理
 js/export.js        匯出 Markdown／JSON
 js/app.js           路由、畫面、自動儲存
 tests/run.js        邏輯測試（不需安裝套件）
+day06-app/          Day 06 讓學員部署的範例應用程式（Docker Compose：Caddy + Node.js API + PostgreSQL）
 ```
+
+## Day 06 部署實作
+
+網站的 `#/day06` 頁面帶學員完成：SSH 金鑰 → 開 Droplet → 防火牆與 deploy 使用者 → 安裝 Docker → 部署 → 看 log／查資料庫／故障演練 →（選修）網域與 HTTPS → 刪除機器。
+
+- 學員填入 Droplet IP 後，頁面上的指令會自動帶入；IP 與勾選進度只存在瀏覽器。
+- 學員在機器上 `git clone` 的就是這個 repo，所以 repo 必須是公開的；若改了 repo 位址，請同步修改 `js/lab.js` 的 `REPO`。
+- 範例應用程式的說明見 [`day06-app/README.md`](day06-app/README.md)。
+- 上課前建議講師自己完整跑一次，確認 DigitalOcean 介面與方案價格沒有變動。
 
 ## 修改題目或 ERD
 
@@ -59,7 +72,7 @@ node tests/run.js
 
 ## 驗收結果
 
-以 `node tests/run.js`（15 項）與 Chrome 實際操作驗證。
+以 `node tests/run.js`（20 項）與 Chrome 實際操作驗證。Day 06 的範例應用程式已在本機 Docker 上跑過部署、故障與復原流程；尚未在真的 DigitalOcean Droplet 上從頭走過一次。
 
 - [x] 首頁顯示三大題組，合計 12 個情境。
 - [x] 每組 ERD 可正確顯示全部資料表與 PK/FK 關聯。
